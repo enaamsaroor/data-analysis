@@ -1,0 +1,112 @@
+Data Exploration BY using SQL queries
+
+select *
+from covidvaccentiom
+order by 3  ; 
+
+
+select *
+from coviddeaths
+where continent is not null
+order by 3 ; 
+
+--  select data that are going to used 
+select  location,date ,new_cases,total_cases,total_deaths,population
+from coviddeaths
+order by 1,2;
+
+-- looking at the total cases vs total deaths 
+-- showing likeihood of daying in my contient 
+select  location,date ,new_cases,total_cases,total_deaths,(total_deaths/total_cases)*100 as DeathPrecentage 
+from coviddeaths
+where location Like  '%Austria%'
+order by 1,2;
+
+
+-- looking at population vs tatal cases
+-- showing the precentage of population who  they got covid 
+select  location,date ,total_cases,population,(total_cases/population )*100 as populationsprecentage
+from coviddeaths
+
+order by 1,2;
+
+-- looking at countries whith hightest rate of infection comparing with population 
+
+select  location,MAX(total_cases) as hightestInfectionCount,population,MAX(total_cases/population )*100 as populationsprecentage
+from coviddeaths
+GROUP BY location,population
+order by populationsprecentage DESC;
+
+-- showing the countries with heightest death countet per population 
+select  location,population,MAX(total_deaths )as hightestDeathsCount
+from coviddeaths
+where continent is not null
+GROUP BY location,population
+order by hightestDeathsCount DESC;
+
+
+-- breaking down by continent
+select continent ,MAX(total_deaths )as hightestDeathsCount
+from coviddeaths 
+where continent is not null
+GROUP BY continent
+order by hightestDeathsCount;
+
+-- Global Number 
+
+select date ,sum(new_cases) as newcases,sum(new_deaths) as newdeaths,(sum(new_deaths)/ sum(new_cases)*100) as DeathsPrecentage 
+from coviddeaths 
+WHERE continent IS NOT NULL
+ group by  date
+order by 1,2;
+
+-- lokking at total of population vs vaccination
+
+select dea.continent,dea.location,dea.date,dea.population,vacc.new_vaccinations,
+sum(vacc.new_vaccinations)over(partition by dea.location order by dea.location,dea.date )as rollingPeopleVaccantaet
+from  coviddeaths dea  join covidvaccentiom vacc
+on dea.location = vacc.location and dea.date=vacc.date
+order by 1,2;
+
+-- using CTE
+with PopulVsVac  (continent,location,date,population,new_vaccinations,rollingPeopleVaccantaet) as (
+select dea.continent,dea.location,dea.date,dea.population,vacc.new_vaccinations,
+sum(vacc.new_vaccinations)over(partition by dea.location order by dea.location,dea.date )as rollingPeopleVaccantaet
+from  coviddeaths dea  join covidvaccentiom vacc
+on dea.location = vacc.location and dea.date=vacc.date)
+select *,(rollingPeopleVaccantaet/population)*100
+from PopulVsVac;
+
+
+
+
+
+-- tamp table
+
+create table precentaPeopleVaccinaton (
+continent varchar (255),
+location VARCHAR (255),
+date datetime,
+population int,
+new_vaccinations int ,
+rollingPeopleVaccantaet  int)
+insert INTO precentaPeopleVaccinaton
+select dea.continent,dea.location,dea.date,dea.population,vacc.new_vaccinations,
+sum(vacc.new_vaccinations)over(partition by dea.location order by dea.location,dea.date )as rollingPeopleVaccantaet
+from  coviddeaths dea  join covidvaccentiom vacc
+on dea.location = vacc.location and dea.date=vacc.date
+
+select *
+from precentaPeopleVaccinaton;
+
+-- creating view for vusualizition 
+CREATE VIEW  brecentaPeopleVaccinaton AS 
+
+select dea.continent,dea.location,dea.date,dea.population,vacc.new_vaccinations,
+sum(vacc.new_vaccinations)over(partition by dea.location order by dea.location,dea.date )as rollingPeopleVaccantaet
+from  coviddeaths dea  join covidvaccentiom vacc
+on dea.location = vacc.location and dea.date=vacc.date
+where dea.continent is not null;
+
+select *
+from brecentapeoplevaccinaton;
